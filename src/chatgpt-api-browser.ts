@@ -171,18 +171,26 @@ export class ChatGPTAPIBrowser extends AChatGPTAPI {
       this._page.on('request', this._onRequest.bind(this))
       this._page.on('response', this._onResponse.bind(this))
 
-      // bypass cloudflare and login
-      const authInfo = await getOpenAIAuth({
-        email: this._email,
-        password: this._password,
-        browser: this._browser,
-        page: this._page,
-        isGoogleLogin: this._isGoogleLogin,
-        isMicrosoftLogin: this._isMicrosoftLogin
-      })
+      if (!this.isChatPage || this._isGoogleLogin || this._isMicrosoftLogin) {
+        await this._page.goto(CHAT_PAGE_URL, {
+          waitUntil: 'networkidle0'
+        })
+      }
 
-      if (this._debug) {
-        console.log('chatgpt', this._email, 'auth', authInfo)
+      if (!this.isChatPage || !(await this.getIsAuthenticated())) {
+        // bypass cloudflare and login
+        const authInfo = await getOpenAIAuth({
+          email: this._email,
+          password: this._password,
+          browser: this._browser,
+          page: this._page,
+          isGoogleLogin: this._isGoogleLogin,
+          isMicrosoftLogin: this._isMicrosoftLogin
+        })
+
+        if (this._debug) {
+          console.log('chatgpt', this._email, 'auth', authInfo)
+        }
       }
     } catch (err) {
       if (this._browser) {
